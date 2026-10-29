@@ -6,6 +6,7 @@ import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
 import { LOGO_URL } from './data/site';
 import { setFavicon } from './utils/favicon';
+import { ensureViewportMeta } from './utils/viewport';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { Catalog } from './pages/Catalog';
@@ -21,8 +22,13 @@ import { Maintenance } from './pages/Maintenance';
 import { Policy } from './pages/Policy';
 import { NotFound } from './pages/NotFound';
 
-export function App() {
+interface AppProps {
+  showMaintenanceNotice?: boolean;
+}
+
+export function App({ showMaintenanceNotice = true }: AppProps) {
   useEffect(() => {
+    ensureViewportMeta();
     setFavicon(LOGO_URL);
     document.title = 'Arrow Ventures — Electric Bikes, Parts & Accessories';
   }, []);
@@ -34,7 +40,7 @@ export function App() {
           <WishlistProvider>
             <Routes>
               <Route element={<Layout />}>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<Home showMaintenanceNotice={showMaintenanceNotice} />} />
                 <Route path="/catalog" element={<Catalog />} />
                 <Route path="/product/:slug" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
@@ -51,7 +57,7 @@ export function App() {
             </Routes>
             <Toaster
               theme="dark"
-              position="bottom-right"
+              position="bottom-center"
               toastOptions={{
                 style: {
                   background: 'rgb(20 20 20)',

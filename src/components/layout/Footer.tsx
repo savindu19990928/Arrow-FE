@@ -23,24 +23,24 @@ export function Footer() {
           </div>
         </div>
         {footerGroups.map((group) =>
-          <nav key={group.title} aria-label={group.title}>
+        <nav key={group.title} aria-label={group.title}>
             <h2 className="text-sm font-semibold text-fg">{group.title}</h2>
             <ul className="mt-4 space-y-2.5">
               {group.links.map((link) =>
-                <li key={link.to}>
+            <li key={link.to}>
                   <Link to={link.to} className="text-sm text-muted transition-colors duration-150 hover:text-fg">
                     {link.label}
                   </Link>
                 </li>
-              )}
+            )}
             </ul>
           </nav>
         )}
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-xs text-subtle sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          {/* <p>© {new Date().getFullYear()} Arrow Ventures. All rights reserved.</p> */}
-          <p>Made by <a href="https://www.devrious.lk" target="_blank">Devrious</a></p>
+          <p>© {new Date().getFullYear()} Arrow Ventures (Pvt) Ltd. All rights reserved.</p>
+          <p>Prices in Sri Lankan Rupees (LKR). Pay with Koko, Mintpay or bank transfer.</p>
         </div>
       </div>
     </footer>);

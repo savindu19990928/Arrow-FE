@@ -21,7 +21,7 @@ export function Maintenance() {
             src={WORKSHOP_IMAGE}
             alt="Technician servicing an electric bike hub motor"
             className="aspect-[4/3] w-full rounded-xl border border-line object-cover" />
-
+          
         </div>
       </section>
 
@@ -48,7 +48,7 @@ export function Maintenance() {
               <caption className="sr-only">Standard warranty coverage by component</caption>
               <tbody className="divide-y divide-line border-y border-line">
                 {warrantyCoverage.map((item) =>
-                  <tr key={item.component}>
+                <tr key={item.component}>
                     <th scope="row" className="py-4 pr-4 align-middle text-sm font-medium text-fg sm:py-6 sm:text-base md:text-lg">
                       {item.component}
                     </th>
@@ -78,7 +78,7 @@ export function Maintenance() {
             </p>
             <ul className="mt-6 flex flex-wrap gap-2">
               {wearAndTearExamples.map((item) =>
-                <li key={item} className="rounded-full border border-line px-3 py-1.5 text-sm text-fg">
+              <li key={item} className="rounded-full border border-line px-3 py-1.5 text-sm text-fg">
                   {item}
                 </li>
               )}
@@ -88,9 +88,9 @@ export function Maintenance() {
             <WrenchIcon className="h-6 w-6 text-fg" aria-hidden="true" />
             <p className="mt-6 text-sm text-muted">We highly recommend a basic tune-up every</p>
             <p className="mt-2 break-words font-display text-3xl font-extrabold uppercase leading-tight tracking-tight text-fg sm:text-4xl md:text-5xl">
-              6 months<br />
+              6 months
               <span className="mx-3 text-muted">or</span>
-              <br />1,000 km
+              1,000 km
             </p>
             <p className="mt-4 text-sm text-muted">
               to ensure optimal performance and longevity of your e-bike components.

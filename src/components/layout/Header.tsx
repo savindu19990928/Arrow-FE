@@ -50,8 +50,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:h-16 sm:gap-6 sm:px-6 lg:px-8">
-        <Link to="/" aria-label="Arrow Ventures home" className="shrink-0">
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-2 px-3 min-[400px]:px-4 sm:h-16 sm:gap-6 sm:px-6 lg:px-8">
+        <Link to="/" aria-label="Arrow Ventures home" className="min-w-0 shrink">
           <BrandMark />
         </Link>
 
@@ -88,7 +88,7 @@ export function Header() {
           </div>
         </form>
 
-        <div className="ml-auto flex items-center gap-0.5 sm:gap-1 lg:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-0 sm:gap-1 lg:ml-0">
           <button
             type="button"
             className={`${iconLink} lg:hidden`}

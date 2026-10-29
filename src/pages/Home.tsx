@@ -10,8 +10,9 @@ import { ProductCard } from '../components/ProductCard';
 import { buttonClasses } from '../components/ui/Button';
 import { ErrorState } from '../components/ui/ErrorState';
 import { ProductGridSkeleton } from '../components/ui/ProductGridSkeleton';
+import { MaintenanceNotice } from '../components/MaintenanceNotice';
 
-export function Home() {
+export function Home({ showMaintenanceNotice = true }: {showMaintenanceNotice?: boolean;}) {
   const featured = useApi(() => catalogApi.products({ is_featured: true, page_size: 8 }), []);
   const categories = useApi(() => catalogApi.categories(), []);
   const campaigns = useApi(() => promoApi.campaigns(), []);
@@ -21,11 +22,12 @@ export function Home() {
 
   return (
     <div className="w-full bg-bg">
+      {showMaintenanceNotice && <MaintenanceNotice />}
       <section className="relative isolate overflow-hidden border-b border-line">
         <img src={HERO_IMAGE} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-right" />
         <div className="absolute inset-0 -z-10 bg-bg/40 md:bg-transparent" aria-hidden="true" />
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 md:py-36 lg:px-8 lg:py-44">
-          <h1 className="max-w-3xl font-display text-[2.625rem] font-extrabold uppercase leading-[0.92] tracking-tight text-fg sm:text-6xl md:text-7xl lg:text-[88px]">
+          <h1 className="max-w-3xl break-words font-display text-[2.25rem] font-extrabold min-[400px]:text-[2.625rem] uppercase leading-[0.92] tracking-tight text-fg sm:text-6xl md:text-7xl lg:text-[88px]">
             Built to ride further.
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-fg/75 sm:mt-6 md:text-lg">
@@ -185,8 +187,8 @@ export function Home() {
           </div>
           <dl className="mt-10 grid grid-cols-2 gap-y-8 border-t border-line pt-8 md:mt-12 md:grid-cols-4 md:gap-y-10 md:pt-10">
             {warrantyCoverage.map((item) =>
-            <div key={item.component} className="pr-4">
-                <dd className="font-display text-4xl font-extrabold tabular-nums text-fg sm:text-5xl md:text-6xl">
+            <div key={item.component} className="min-w-0 pr-3 sm:pr-4">
+                <dd className="font-display text-3xl font-extrabold tabular-nums text-fg min-[400px]:text-4xl sm:text-5xl md:text-6xl">
                   {item.duration}
                   <span className="ml-1.5 text-base font-semibold uppercase text-muted">{item.unit}</span>
                 </dd>
