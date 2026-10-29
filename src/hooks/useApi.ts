@@ -1,22 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { errorMessage } from '../utils/apiClient';
+import { useCallback, useEffect, useState } from 'react';
+import type { DependencyList } from 'react';
+import { getErrorMessage } from '../utils/apiClient';
 
-interface ApiState<T> {
-  data: T | null;
-  error: string | null;
-  loading: boolean;
-  reload: () => void;
-  setData: React.Dispatch<React.SetStateAction<T | null>>;
-}
-
-/** Runs an async fetcher whenever deps change. Ignores stale responses. */
-export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[], enabled = true): ApiState<T> {
+export function useApi<T>(fetcher: () => Promise<T>, deps: DependencyList, enabled = true) {
   const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState<boolean>(enabled);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(enabled);
   const [nonce, setNonce] = useState(0);
-  const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
 
   useEffect(() => {
     if (!enabled) {
@@ -26,13 +16,12 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[], enabled = 
     let active = true;
     setLoading(true);
     setError(null);
-    fetcherRef.
-    current().
+    fetcher().
     then((result) => {
       if (active) setData(result);
     }).
     catch((err: unknown) => {
-      if (active) setError(errorMessage(err));
+      if (active) setError(getErrorMessage(err));
     }).
     finally(() => {
       if (active) setLoading(false);
@@ -44,5 +33,6 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[], enabled = 
   }, [...deps, nonce, enabled]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
-  return { data, error, loading, reload, setData };
+
+  return { data, setData, loading, error, reload };
 }

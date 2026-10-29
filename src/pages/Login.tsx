@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { AuthShell } from '../components/auth/AuthShell';
 import { useAuth } from '../contexts/AuthContext';
-import { errorMessage } from '../utils/apiClient';
+import { getErrorMessage } from '../utils/apiClient';
+import { BrandMark } from '../components/layout/BrandMark';
+import { Button } from '../components/ui/Button';
+import { TextField } from '../components/ui/TextField';
 
 export function Login() {
   const { user, login } = useAuth();
@@ -12,57 +14,64 @@ export function Login() {
   const from = (location.state as {from?: string;} | null)?.from ?? '/account';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  if (user && !submitting) return <Navigate to={from} replace />;
+  if (user) return <Navigate to={from} replace />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
+    setLoading(true);
     setError(null);
     try {
-      const u = await login(email.trim(), password);
-      toast.success(`Welcome back, ${u.first_name || 'rider'}`);
+      await login(email.trim(), password);
+      toast.success('Welcome back');
       navigate(from, { replace: true });
     } catch (err) {
-      setError(errorMessage(err));
-      setSubmitting(false);
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AuthShell title="Sign in" subtitle="Track orders, save addresses and keep a wishlist of your next ride.">
-      <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label className="label" htmlFor="l-email">Email</label>
-          <input id="l-email" type="email" className="field" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div>
-          <label className="label" htmlFor="l-pass">Password</label>
-          <input id="l-pass" type="password" className="field" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        {error &&
-        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-danger">
-            {error}
-          </p>
-        }
-        <button type="submit" className="btn-primary w-full" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-      <p className="mt-6 text-[15px] text-muted">
-        New to Arrow Ventures?{' '}
-        <Link to="/register" state={{ from }} className="font-medium text-ink underline underline-offset-4">
-          Create an account
-        </Link>
-      </p>
-      <p className="mt-2 text-[15px] text-muted">
-        Checked out as a guest?{' '}
-        <Link to="/track" className="font-medium text-ink underline underline-offset-4">
-          Track your order
-        </Link>
-      </p>
-    </AuthShell>);
+    <div className="flex w-full justify-center bg-bg px-4 py-20">
+      <div className="w-full max-w-sm">
+        <BrandMark size="lg" />
+        <h1 className="mt-10 font-display text-3xl font-extrabold uppercase tracking-tight text-fg">Sign in</h1>
+        <p className="mt-2 text-sm text-muted">Access your orders, wishlist and saved addresses.</p>
+        <form onSubmit={submit} className="mt-8 space-y-4">
+          <TextField label="Email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <TextField
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required />
+          
+          {error &&
+          <p role="alert" className="text-sm text-danger">
+              {error}
+            </p>
+          }
+          <Button type="submit" size="lg" fullWidth loading={loading}>
+            Sign in
+          </Button>
+        </form>
+        <p className="mt-8 text-sm text-muted">
+          New to Arrow Ventures?{' '}
+          <Link to="/register" state={{ from }} className="text-fg underline underline-offset-2">
+            Create an account
+          </Link>
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Checked out as a guest?{' '}
+          <Link to="/track-order" className="text-fg underline underline-offset-2">
+            Track your order
+          </Link>
+        </p>
+      </div>
+    </div>);
 
 }

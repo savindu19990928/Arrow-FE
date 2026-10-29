@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { errorMessage, toList } from '../utils/apiClient';
-import { wishlistApi } from '../utils/storeApi';
+import { getErrorMessage } from '../utils/apiClient';
+import { wishlistApi } from '../utils/shopApi';
 import { useAuth } from './AuthContext';
 import type { WishlistItem } from '../types/api';
 
@@ -10,7 +10,8 @@ interface WishlistContextValue {
   items: WishlistItem[];
   loading: boolean;
   error: string | null;
-  has: (productId: number) => boolean;
+  pendingId: number | null;
+  isSaved: (productId: number) => boolean;
   toggle: (productId: number) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -20,56 +21,59 @@ const WishlistContext = createContext<WishlistContextValue | null>(null);
 export function WishlistProvider({ children }: {children: React.ReactNode;}) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      setItems(await wishlistApi.list());
+      setError(null);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       setItems([]);
       return;
     }
-    setLoading(true);
-    setError(null);
-    try {
-      setItems(toList(await wishlistApi.list()));
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
     void refresh();
-  }, [refresh]);
+  }, [user, refresh]);
 
-  const has = useCallback(
-    (productId: number) => items.some((item) => item.product.id === productId),
-    [items]
-  );
+  const savedIds = useMemo(() => new Set(items.map((item) => item.product.id)), [items]);
+  const isSaved = useCallback((productId: number) => savedIds.has(productId), [savedIds]);
 
   const toggle = useCallback(
     async (productId: number) => {
       if (!user) {
         toast('Sign in to save products to your wishlist.');
-        navigate('/login', { state: { from: window.location.pathname } });
+        navigate('/login', { state: { from: `${location.pathname}${location.search}` } });
         return;
       }
+      setPendingId(productId);
       try {
         const res = await wishlistApi.toggle(productId);
-        toast.success(res.message || (res.added ? 'Added to wishlist' : 'Removed from wishlist'));
+        toast.success(res.added ? 'Saved to wishlist' : 'Removed from wishlist');
         await refresh();
       } catch (err) {
-        toast.error(errorMessage(err));
+        toast.error(getErrorMessage(err));
+      } finally {
+        setPendingId(null);
       }
     },
-    [user, navigate, refresh]
+    [user, navigate, location.pathname, location.search, refresh]
   );
 
   const value = useMemo(
-    () => ({ items, loading, error, has, toggle, refresh }),
-    [items, loading, error, has, toggle, refresh]
+    () => ({ items, loading, error, pendingId, isSaved, toggle, refresh }),
+    [items, loading, error, pendingId, isSaved, toggle, refresh]
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
@@ -77,6 +81,6 @@ export function WishlistProvider({ children }: {children: React.ReactNode;}) {
 
 export function useWishlist(): WishlistContextValue {
   const ctx = useContext(WishlistContext);
-  if (!ctx) throw new Error('useWishlist must be used inside WishlistProvider');
+  if (!ctx) throw new Error('useWishlist must be used within WishlistProvider');
   return ctx;
 }

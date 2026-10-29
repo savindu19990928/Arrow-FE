@@ -1,44 +1,43 @@
-import { format, parseISO } from 'date-fns';
+const amountFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export function toNumber(value: string | number | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  const n = typeof value === 'number' ? value : parseFloat(value);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export function formatLKR(value: string | number | null | undefined): string {
-  const num = typeof value === 'string' ? parseFloat(value) : value ?? 0;
-  if (Number.isNaN(num)) return 'LKR —';
-  const hasCents = Math.round(num * 100) % 100 !== 0;
-  return `LKR ${num.toLocaleString('en-LK', {
-    minimumFractionDigits: hasCents ? 2 : 0,
-    maximumFractionDigits: 2
-  })}`;
+  return `LKR ${amountFormatter.format(toNumber(value))}`;
 }
 
-export function formatDate(value: string | null | undefined, pattern = 'd MMM yyyy'): string {
-  if (!value) return '—';
-  try {
-    return format(parseISO(value), pattern);
-  } catch {
-    return value;
-  }
+export function formatDate(iso?: string | null, withTime = false): string {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {})
+  });
 }
 
-export function humanize(value: string | null | undefined): string {
+export function humanize(value?: string | null): string {
   if (!value) return '';
   return value.
   toLowerCase().
   split('_').
-  map((part) => part.charAt(0).toUpperCase() + part.slice(1)).
+  map((word) => word ? word[0].toUpperCase() + word.slice(1) : word).
   join(' ');
 }
 
-export function paymentMethodLabel(method: string): string {
-  if (method === 'KOKO') return 'Koko';
-  if (method === 'MINTPAY') return 'Mintpay';
-  if (method === 'BANK_TRANSFER') return 'Bank transfer';
-  return humanize(method);
-}
+export const PAYMENT_LABELS: Record<string, string> = {
+  KOKO: 'Koko',
+  MINTPAY: 'Mintpay',
+  BANK_TRANSFER: 'Bank transfer'
+};
 
-export function statusTone(status: string): 'positive' | 'negative' | 'pending' | 'neutral' {
-  const s = status.toUpperCase();
-  if (['DELIVERED', 'SUCCESSFUL', 'CONFIRMED', 'APPROVED', 'COMPLETED'].includes(s)) return 'positive';
-  if (['CANCELLED', 'FAILED', 'REJECTED', 'REFUNDED', 'RETURNED'].includes(s)) return 'negative';
-  if (['PENDING', 'REQUESTED'].includes(s)) return 'pending';
-  return 'neutral';
+export function paymentLabel(method?: string | null): string {
+  if (!method) return '—';
+  return PAYMENT_LABELS[method] ?? humanize(method);
 }

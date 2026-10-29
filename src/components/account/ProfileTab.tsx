@@ -1,77 +1,114 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
-import { errorMessage } from '../../utils/apiClient';
-import { authApi } from '../../utils/storeApi';
+import { getErrorMessage, getFieldErrors } from '../../utils/apiClient';
+import { formatDate } from '../../utils/format';
+import { authApi } from '../../utils/shopApi';
+import { Button } from '../ui/Button';
+import { TextField } from '../ui/TextField';
 
 export function ProfileTab() {
   const { user, setUser } = useAuth();
-  const [profile, setProfile] = useState({
-    first_name: user?.first_name ?? '',
-    last_name: user?.last_name ?? '',
-    phone_number: user?.phone_number ?? ''
-  });
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState(user?.first_name ?? '');
+  const [lastName, setLastName] = useState(user?.last_name ?? '');
+  const [phone, setPhone] = useState(user?.phone_number ?? '');
+  const [saving, setSaving] = useState(false);
 
-  const [pw, setPw] = useState({ old_password: '', new_password: '', new_password_confirm: '' });
-  const [savingPw, setSavingPw] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwErrors, setPwErrors] = useState<Record<string, string>>({});
+  const [changing, setChanging] = useState(false);
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavingProfile(true);
-    setProfileError(null);
+    setSaving(true);
     try {
-      setUser(await authApi.updateProfile(profile));
+      const updated = await authApi.updateProfile({ first_name: firstName, last_name: lastName, phone_number: phone });
+      setUser(updated);
       toast.success('Profile updated');
     } catch (err) {
-      setProfileError(errorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
-      setSavingProfile(false);
+      setSaving(false);
     }
   };
 
-  const savePassword = async (e: React.FormEvent) => {
+  const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw.new_password !== pw.new_password_confirm) {
-      setPwError('New passwords don’t match.');
+    if (newPassword !== confirmPassword) {
+      setPwErrors({ new_password_confirm: 'Passwords do not match' });
       return;
     }
-    setSavingPw(true);
-    setPwError(null);
+    setChanging(true);
+    setPwErrors({});
     try {
-      const res = await authApi.changePassword(pw);
-      toast.success(res.message || 'Password changed');
-      setPw({ old_password: '', new_password: '', new_password_confirm: '' });
+      await authApi.changePassword({
+        old_password: oldPassword,
+        new_password: newPassword,
+        new_password_confirm: confirmPassword
+      });
+      toast.success('Password changed');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
-      setPwError(errorMessage(err));
+      setPwErrors(getFieldErrors(err));
+      toast.error(getErrorMessage(err));
     } finally {
-      setSavingPw(false);
+      setChanging(false);
     }
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <form onSubmit={saveProfile} className="space-y-4 rounded-md bg-white p-6">
-        <h3 className="text-lg font-semibold">Personal details</h3>
+    <div className="grid gap-12 xl:grid-cols-2">
+      <form onSubmit={saveProfile} className="space-y-4">
+        <h3 className="font-semibold text-fg">Personal details</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="p-first">First name</label><input id="p-first" className="field" required value={profile.first_name} onChange={(e) => setProfile({ ...profile, first_name: e.target.value })} /></div>
-          <div><label className="label" htmlFor="p-last">Last name</label><input id="p-last" className="field" required value={profile.last_name} onChange={(e) => setProfile({ ...profile, last_name: e.target.value })} /></div>
+          <TextField label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+          <TextField label="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
         </div>
-        <div><label className="label" htmlFor="p-email">Email</label><input id="p-email" className="field bg-canvas" value={user?.email ?? ''} readOnly /></div>
-        <div><label className="label" htmlFor="p-phone">Phone</label><input id="p-phone" type="tel" className="field" value={profile.phone_number} onChange={(e) => setProfile({ ...profile, phone_number: e.target.value })} /></div>
-        {profileError && <p role="alert" className="text-sm text-danger">{profileError}</p>}
-        <button type="submit" className="btn-primary" disabled={savingProfile}>{savingProfile ? 'Saving…' : 'Save changes'}</button>
+        <TextField label="Email" value={user?.email ?? ''} disabled hint="Contact support to change your email." />
+        <TextField label="Phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        {user?.created_at && <p className="text-xs text-subtle">Member since {formatDate(user.created_at)}</p>}
+        <Button type="submit" loading={saving}>
+          Save changes
+        </Button>
       </form>
 
-      <form onSubmit={savePassword} className="space-y-4 rounded-md bg-white p-6">
-        <h3 className="text-lg font-semibold">Change password</h3>
-        <div><label className="label" htmlFor="pw-old">Current password</label><input id="pw-old" type="password" className="field" required autoComplete="current-password" value={pw.old_password} onChange={(e) => setPw({ ...pw, old_password: e.target.value })} /></div>
-        <div><label className="label" htmlFor="pw-new">New password</label><input id="pw-new" type="password" className="field" required minLength={8} autoComplete="new-password" value={pw.new_password} onChange={(e) => setPw({ ...pw, new_password: e.target.value })} /></div>
-        <div><label className="label" htmlFor="pw-new2">Confirm new password</label><input id="pw-new2" type="password" className="field" required autoComplete="new-password" value={pw.new_password_confirm} onChange={(e) => setPw({ ...pw, new_password_confirm: e.target.value })} /></div>
-        {pwError && <p role="alert" className="text-sm text-danger">{pwError}</p>}
-        <button type="submit" className="btn-secondary" disabled={savingPw}>{savingPw ? 'Updating…' : 'Update password'}</button>
+      <form onSubmit={changePassword} className="space-y-4">
+        <h3 className="font-semibold text-fg">Change password</h3>
+        <TextField
+          label="Current password"
+          type="password"
+          autoComplete="current-password"
+          value={oldPassword}
+          onChange={(e) => setOldPassword(e.target.value)}
+          error={pwErrors.old_password}
+          required />
+        
+        <TextField
+          label="New password"
+          type="password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          error={pwErrors.new_password}
+          minLength={8}
+          required />
+        
+        <TextField
+          label="Confirm new password"
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          error={pwErrors.new_password_confirm}
+          required />
+        
+        <Button type="submit" variant="secondary" loading={changing}>
+          Update password
+        </Button>
       </form>
     </div>);
 

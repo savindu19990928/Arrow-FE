@@ -1,71 +1,118 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ImageIcon, ImageOffIcon, Loader2Icon } from 'lucide-react';
-import { ModelViewer3D } from './ModelViewer3D';
+import { BoxIcon, ImageIcon, ImageOffIcon } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
-import { catalogApi } from '../../utils/storeApi';
-import type { ProductDetail, ProductImage } from '../../types/api';
-interface ProductMediaProps {
-  product: ProductDetail;
-  variantImage?: string | null;
-}
-export function ProductMedia({
-  product,
-  variantImage
-}: ProductMediaProps) {
-  const [mode, setMode] = useState<'photos' | '3d'>('photos');
-  const images = useMemo<ProductImage[]>(() => {
-    const sorted = [...(product.images ?? [])].sort((a, b) => a.display_order - b.display_order);
-    if (sorted.length === 0 && product.primary_image) {
-      sorted.push({
-        id: -1,
-        image: product.primary_image,
-        alt_text: product.name,
-        is_primary: true,
-        display_order: 0
-      });
-    }
-    if (variantImage && !sorted.some((i) => i.image === variantImage)) {
-      sorted.unshift({
-        id: -2,
-        image: variantImage,
-        alt_text: product.name,
-        is_primary: false,
-        display_order: -1
-      });
-    }
-    return sorted;
-  }, [product, variantImage]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  useEffect(() => setActiveIndex(0), [variantImage]);
-  const needsFetch = mode === '3d' && product.has_3d_model && !product.viewer_3d?.model_3d_file;
-  const modelReq = useApi(() => catalogApi.model3d(product.slug), [product.slug], needsFetch);
-  const viewerConfig = product.viewer_3d?.model_3d_file ? product.viewer_3d : modelReq.data;
-  const active = images[activeIndex];
-  return <div>
-      <div className="relative aspect-square overflow-hidden rounded-md bg-canvas">
-        {product.has_3d_model && <div role="tablist" aria-label="Product media" className="absolute right-4 top-4 z-10 flex rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5">
-            {(['photos', '3d'] as const).map((m) => <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={`focus-ring inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-semibold transition-colors duration-150 ease-out ${mode === m ? 'bg-ink text-white' : 'text-ink hover:bg-canvas'}`}>
-                {m === 'photos' ? <ImageIcon className="h-3.5 w-3.5" aria-hidden /> : <div className="h-3.5 w-3.5" aria-hidden />}
-                {m === 'photos' ? 'Photos' : '3D view'}
-              </button>)}
-          </div>}
+import { catalogApi } from '../../utils/shopApi';
+import { Model3DViewer } from './Model3DViewer';
+import type { ProductDetail } from '../../types/api';
 
-        {mode === '3d' ? viewerConfig ? <ModelViewer3D config={viewerConfig} alt={product.name} /> : modelReq.error ? <div role="alert" className="flex h-full items-center justify-center p-8 text-center text-muted">
-              {modelReq.error}
-            </div> : <div className="flex h-full items-center justify-center gap-2 text-muted">
-              <Loader2Icon className="h-5 w-5 animate-spin" aria-hidden /> Preparing 3D model…
-            </div> : active ? <img src={active.image} alt={active.alt_text || product.name} className="h-full w-full object-contain mix-blend-multiply" /> : <div className="flex h-full flex-col items-center justify-center gap-2 text-subtle">
-            <ImageOffIcon className="h-10 w-10" aria-hidden />
-            <span className="text-sm">No photos available</span>
-          </div>}
+type Mode = 'photos' | '3d';
+
+export function ProductMedia({ product, variantImage }: {product: ProductDetail;variantImage: string | null;}) {
+  const [mode, setMode] = useState<Mode>('photos');
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex(variantImage ? -1 : 0);
+  }, [variantImage]);
+
+  const images = useMemo(() => {
+    const list = [...(product.images ?? [])].sort((a, b) => a.display_order - b.display_order);
+    if (!list.length && product.primary_image) {
+      return [{ id: 0, image: product.primary_image, alt_text: product.name, is_primary: true, display_order: 0 }];
+    }
+    return list;
+  }, [product]);
+
+  const inlineViewer = product.viewer_3d?.model_3d_file ? product.viewer_3d : null;
+  const needsFetch = product.has_3d_model && !inlineViewer && mode === '3d';
+  const fetched = useApi(() => catalogApi.model3d(product.slug), [product.slug], needsFetch);
+  const viewer = inlineViewer ?? fetched.data;
+
+  const current = variantImage && activeIndex === -1 ? variantImage : images[activeIndex]?.image ?? variantImage;
+  const currentAlt = images[activeIndex]?.alt_text || product.name;
+
+  return (
+    <div>
+      <div className="relative aspect-square overflow-hidden rounded-xl border border-line bg-surface sm:aspect-[5/4]">
+        {mode === 'photos' ?
+        current ?
+        <img src={current} alt={currentAlt} className="h-full w-full object-contain" /> :
+
+        <div className="flex h-full items-center justify-center text-subtle">
+              <ImageOffIcon className="h-10 w-10" aria-hidden="true" />
+            </div> :
+
+        viewer ?
+        <Model3DViewer config={viewer} alt={`3D model of ${product.name}`} /> :
+        fetched.error ?
+        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">{fetched.error}</div> :
+
+        <div className="flex h-full items-center justify-center text-sm text-muted" role="status">
+            Preparing 3D viewer…
+          </div>
+        }
+
+        {product.has_3d_model &&
+        <div
+          className="absolute right-4 top-4 flex rounded-lg border border-line bg-bg/90 p-1"
+          role="tablist"
+          aria-label="Media view">
+          
+            {(
+          [
+          { id: 'photos', label: 'Photos', icon: ImageIcon },
+          { id: '3d', label: '3D view', icon: BoxIcon }] as
+          const).
+          map((tab) =>
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === tab.id}
+            onClick={() => setMode(tab.id)}
+            className={`flex h-10 items-center gap-1.5 sm:h-8 whitespace-nowrap rounded-md px-3 text-xs font-medium transition-colors duration-150 ${
+            mode === tab.id ? 'bg-fg text-bg' : 'text-muted hover:text-fg'}`
+            }>
+            
+                <tab.icon className="h-3.5 w-3.5" aria-hidden="true" />
+                {tab.label}
+              </button>
+          )}
+          </div>
+        }
       </div>
 
-      {mode === 'photos' && images.length > 1 && <ul className="mt-3 grid grid-cols-5 gap-3" aria-label="Product photos">
-          {images.map((img, i) => <li key={img.id}>
-              <button type="button" onClick={() => setActiveIndex(i)} aria-label={`Show photo ${i + 1}`} aria-current={i === activeIndex} className={`focus-ring block aspect-square w-full overflow-hidden rounded-sm bg-canvas ring-2 transition-shadow duration-150 ease-out ${i === activeIndex ? 'ring-ink' : 'ring-transparent hover:ring-line'}`}>
-                <img src={img.image} alt="" className="h-full w-full object-contain mix-blend-multiply" />
-              </button>
-            </li>)}
-        </ul>}
-    </div>;
+      {mode === 'photos' && (images.length > 1 || variantImage) &&
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          {variantImage &&
+        <Thumb src={variantImage} alt="Selected variant" active={activeIndex === -1} onClick={() => setActiveIndex(-1)} />
+        }
+          {images.map((img, index) =>
+        <Thumb
+          key={img.id}
+          src={img.image}
+          alt={img.alt_text || `${product.name} image ${index + 1}`}
+          active={activeIndex === index}
+          onClick={() => setActiveIndex(index)} />
+
+        )}
+        </div>
+      }
+    </div>);
+
+}
+
+function Thumb({ src, alt, active, onClick }: {src: string;alt: string;active: boolean;onClick: () => void;}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`h-16 w-20 shrink-0 overflow-hidden rounded-md border bg-surface transition-colors duration-150 ${
+      active ? 'border-fg' : 'border-line hover:border-fg/40'}`
+      }>
+      
+      <img src={src} alt={alt} className="h-full w-full object-cover" />
+    </button>);
+
 }

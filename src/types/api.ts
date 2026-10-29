@@ -11,29 +11,52 @@ export interface User {
   first_name: string;
   last_name: string;
   phone_number: string;
-  profile_photo?: string | null;
   role: string;
+  profile_photo?: string | null;
   is_verified?: boolean;
   created_at?: string;
 }
 
-export interface Address {
-  id: number;
+export interface AuthSession {
+  access: string;
+  refresh: string;
+  user: User;
+}
+
+export interface AuthResponse {
+  access?: string;
+  refresh?: string;
+  user?: User;
+  data?: AuthSession & {email?: string;};
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  password_confirm: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+}
+
+export interface AddressInput {
   recipient_name: string;
   phone_number: string;
   address_line1: string;
-  address_line2?: string;
+  address_line2: string;
   city: string;
-  state_or_province?: string;
+  state_or_province: string;
   postal_code: string;
   country: string;
   is_default: boolean;
-  delivery_notes?: string;
+  delivery_notes: string;
+}
+
+export interface Address extends AddressInput {
+  id: number;
   created_at?: string;
   updated_at?: string;
 }
-
-export type AddressInput = Omit<Address, 'id' | 'created_at' | 'updated_at'>;
 
 export interface Category {
   id: number;
@@ -54,6 +77,9 @@ export interface Brand {
   slug: string;
   logo?: string | null;
   description?: string;
+  website?: string;
+  is_active?: boolean;
+  product_count?: number;
 }
 
 export interface ProductSummary {
@@ -84,7 +110,7 @@ export interface ProductImage {
   display_order: number;
 }
 
-export interface ProductSpec {
+export interface Specification {
   id: number;
   group: string;
   key: string;
@@ -92,21 +118,21 @@ export interface ProductSpec {
   display_order: number;
 }
 
-export interface ProductVariant {
+export interface Variant {
   id: number;
   sku: string;
   name: string;
-  color?: string | null;
-  size?: string | null;
-  model_variant?: string | null;
-  battery_capacity?: string | null;
-  wheel_size?: string | null;
-  configuration?: string | null;
-  price_override?: string | null;
+  color: string | null;
+  size: string | null;
+  model_variant: string | null;
+  battery_capacity: string | null;
+  wheel_size: string | null;
+  configuration: string | null;
+  price_override: string | null;
   final_price: string;
   stock_quantity: number;
   in_stock: boolean;
-  image?: string | null;
+  image: string | null;
   is_active: boolean;
 }
 
@@ -115,13 +141,13 @@ export interface Viewer3D {
   name: string;
   has_3d_model: boolean;
   model_3d_file: string | null;
-  model_3d_format?: string;
-  model_3d_poster?: string | null;
-  camera_orbit?: string;
-  field_of_view?: string;
-  auto_rotate?: boolean;
-  allow_zoom?: boolean;
-  environment_preset?: string;
+  model_3d_format: string | null;
+  model_3d_poster: string | null;
+  camera_orbit: string | null;
+  field_of_view: string | null;
+  auto_rotate: boolean;
+  allow_zoom: boolean;
+  environment_preset: string | null;
 }
 
 export interface ProductDetail extends ProductSummary {
@@ -129,8 +155,8 @@ export interface ProductDetail extends ProductSummary {
   warranty_information: string | null;
   estimated_arrival_days: number | null;
   images: ProductImage[];
-  specifications: ProductSpec[];
-  variants: ProductVariant[];
+  specifications: Specification[];
+  variants: Variant[];
   viewer_3d: Viewer3D | null;
 }
 
@@ -153,11 +179,11 @@ export interface CartItem {
   product_id: number;
   product_name: string;
   product_slug: string;
-  product_sku?: string;
+  product_sku: string;
   product_image: string | null;
   variant_id: number | null;
   variant_name: string | null;
-  variant_sku?: string | null;
+  variant_sku: string | null;
   quantity: number;
   unit_price: string;
   line_total: string;
@@ -205,11 +231,11 @@ export interface Campaign {
   slug: string;
   description: string;
   banner: string | null;
-  discount_percentage: string;
+  discount_percentage: string | null;
   start_date: string;
   end_date: string;
   is_active: boolean;
-  is_live: boolean;
+  is_live?: boolean;
 }
 
 export type PaymentMethod = 'KOKO' | 'MINTPAY' | 'BANK_TRANSFER';
@@ -239,7 +265,7 @@ export interface Order {
   order_number: string;
   status: string;
   payment_status: string;
-  payment_method: PaymentMethod;
+  payment_method: PaymentMethod | string;
   customer_name?: string;
   customer_contact?: string;
   shipping_recipient_name?: string;
@@ -250,19 +276,17 @@ export interface Order {
   shipping_state?: string;
   shipping_postal_code?: string;
   shipping_country?: string;
-  subtotal: string;
-  discount_amount: string;
-  delivery_charge: string;
+  subtotal?: string;
+  discount_amount?: string;
+  delivery_charge?: string;
   total_amount: string;
   coupon_code?: string | null;
-  estimated_arrival_date: string | null;
+  estimated_arrival_date?: string | null;
   courier_name?: string | null;
   tracking_number?: string | null;
-  delivery_notes?: string | null;
+  delivery_notes?: string;
   placed_at?: string;
-  confirmed_at?: string | null;
-  delivered_at?: string | null;
-  items: OrderItem[];
+  items?: OrderItem[];
   status_history?: StatusHistoryEntry[];
 }
 
@@ -271,24 +295,12 @@ export interface OrderSummary {
   order_number: string;
   status: string;
   payment_status: string;
-  payment_method: PaymentMethod;
+  payment_method: string;
   total_amount: string;
   placed_at: string;
   estimated_arrival_date: string | null;
   items_count: number;
   customer_name: string;
-}
-
-export interface TrackResult {
-  id: number;
-  order_number: string;
-  status: string;
-  payment_status: string;
-  payment_method: PaymentMethod;
-  courier_name: string | null;
-  tracking_number: string | null;
-  estimated_arrival_date: string | null;
-  total_amount: string;
 }
 
 export interface CheckoutPayload {
@@ -322,31 +334,16 @@ export interface BankDetails {
   instructions: string;
 }
 
-export interface PaymentInitResponse {
+export interface PaymentInitResult {
   provider: string;
   payment_id: number;
   order_number: string;
   amount: number;
   currency?: string;
-  checkout_url?: string;
   installments?: number;
   installment_amount?: number;
+  checkout_url?: string;
   message: string;
-}
-
-export interface CancellationRequest {
-  id: number;
-  reason: string;
-  status: string;
-  admin_note: string | null;
-  created_at: string;
-}
-
-export interface ReturnRefundPayload {
-  type: string;
-  refund_amount: number;
-  reason: string;
-  bank_details_for_refund: string;
 }
 
 export interface Review {
@@ -370,22 +367,7 @@ export interface AppNotification {
   created_at: string;
 }
 
-export interface NotificationsResponse {
+export interface NotificationList {
   unread_count: number;
   notifications: AppNotification[];
-}
-
-export interface RegisterPayload {
-  email: string;
-  password: string;
-  password_confirm: string;
-  first_name: string;
-  last_name: string;
-  phone_number: string;
-}
-
-export interface AuthResult {
-  access: string;
-  refresh: string;
-  user: User;
 }

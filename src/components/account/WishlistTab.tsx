@@ -1,44 +1,61 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { HeartOffIcon, ImageOffIcon } from 'lucide-react';
-import { StateMessage } from '../StateMessage';
+import { HeartIcon, ImageOffIcon } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { formatLKR } from '../../utils/format';
+import { buttonClasses } from '../ui/Button';
+import { EmptyState } from '../ui/EmptyState';
+import { ErrorState } from '../ui/ErrorState';
+import { Spinner } from '../ui/Spinner';
 
 export function WishlistTab() {
-  const { items, loading, error, toggle, refresh } = useWishlist();
+  const { items, loading, error, refresh, toggle, pendingId } = useWishlist();
 
-  if (error) return <StateMessage tone="error" title="We couldn’t load your wishlist" description={error} onRetry={() => void refresh()} />;
-  if (loading && items.length === 0) {
-    return <div className="h-40 animate-pulse rounded-md bg-white" aria-busy="true" />;
-  }
-  if (items.length === 0) {
+  if (loading && !items.length) return <Spinner label="Loading wishlist" />;
+  if (error && !items.length) return <ErrorState message={error} onRetry={() => void refresh()} />;
+  if (!items.length) {
     return (
-      <StateMessage
+      <EmptyState
+        icon={HeartIcon}
         title="Your wishlist is empty"
-        description="Tap the heart on any product to save it for later."
-        action={<Link to="/shop" className="btn-primary">Browse products</Link>} />);
+        message="Tap the heart on any product to save it for later."
+        action={
+        <Link to="/catalog" className={buttonClasses('primary')}>
+            Browse the catalog
+          </Link>
+        } />);
 
 
   }
 
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="grid gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
       {items.map(({ id, product }) =>
-      <li key={id} className="flex flex-col rounded-md bg-white p-3">
-          <Link to={`/product/${product.slug}`} className="block aspect-[1.2] overflow-hidden rounded-sm bg-canvas">
+      <li key={id} className="flex flex-col">
+          <Link to={`/product/${product.slug}`} className="aspect-[4/3] overflow-hidden rounded-lg border border-line bg-surface">
             {product.primary_image ?
-          <img src={product.primary_image} alt={product.name} className="h-full w-full object-contain mix-blend-multiply" /> :
+          <img src={product.primary_image} alt={product.name} className="h-full w-full object-cover" /> :
 
-          <div className="flex h-full items-center justify-center text-subtle"><ImageOffIcon className="h-6 w-6" aria-hidden /></div>
+          <span className="flex h-full items-center justify-center text-subtle">
+                <ImageOffIcon className="h-6 w-6" aria-hidden="true" />
+              </span>
           }
           </Link>
-          <div className="flex flex-1 flex-col px-2 pb-2 pt-4">
-            <Link to={`/product/${product.slug}`} className="text-lg font-medium hover:underline">{product.name}</Link>
-            <p className="mt-1 text-[15px]">{formatLKR(product.price)}</p>
-            <p className={`mt-0.5 text-sm ${product.in_stock ? 'text-leaf' : 'text-danger'}`}>{product.in_stock ? 'In stock' : 'Out of stock'}</p>
-            <button type="button" onClick={() => void toggle(product.id)} className="mt-auto inline-flex items-center gap-1.5 self-start pt-4 text-sm text-muted hover:text-danger">
-              <HeartOffIcon className="h-4 w-4" aria-hidden /> Remove
+          <Link to={`/product/${product.slug}`} className="mt-3 font-medium text-fg hover:underline">
+            {product.name}
+          </Link>
+          <div className="mt-auto flex items-center justify-between pt-2">
+            <span className="text-sm tabular-nums text-fg">
+              {formatLKR(product.price)}
+              {!product.in_stock && <span className="ml-2 text-xs text-subtle">Out of stock</span>}
+            </span>
+            <button
+            type="button"
+            onClick={() => void toggle(product.id)}
+            disabled={pendingId === product.id}
+            className="text-sm text-muted hover:text-fg disabled:opacity-50">
+            
+              Remove
             </button>
           </div>
         </li>

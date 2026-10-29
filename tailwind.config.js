@@ -1,7 +1,4 @@
-const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
-
 export default {
-  darkMode: 'class',
   content: [
   './index.html',
   './src/**/*.{js,ts,jsx,tsx}'
@@ -9,32 +6,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Theme-aware tokens (flip between light and dark mode)
-        ink: token('ink'),
-        canvas: token('canvas'),
-        paper: token('paper'),
-        line: token('line'),
-        muted: token('muted'),
-        subtle: token('subtle'),
-        leaf: token('leaf'),
-        danger: token('danger'),
-        white: token('surface'),
-        // Fixed tokens (identical in both modes)
-        night: '#0E0E0E',
-        snow: '#FFFFFF',
-        lime: {
-          DEFAULT: '#C5F06E',
-          bright: '#8BD12A',
-        },
+        bg: 'rgb(var(--bg) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        raised: 'rgb(var(--raised) / <alpha-value>)',
+        line: 'rgb(var(--line) / <alpha-value>)',
+        fg: 'rgb(var(--fg) / <alpha-value>)',
+        muted: 'rgb(var(--muted) / <alpha-value>)',
+        subtle: 'rgb(var(--subtle) / <alpha-value>)',
+        danger: 'rgb(var(--danger) / <alpha-value>)',
+        success: 'rgb(var(--success) / <alpha-value>)',
+        warn: 'rgb(var(--warn) / <alpha-value>)',
       },
       fontFamily: {
-        display: ['Archivo', 'Inter', 'system-ui', 'sans-serif'],
-        sans: ['Geist', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Archivo', 'Inter', 'ui-sans-serif', 'sans-serif'],
       },
-      maxWidth: {
-        site: '1240px',
+      transitionTimingFunction: {
+        out: 'cubic-bezier(0.23, 1, 0.32, 1)',
       },
     },
   },
   plugins: [],
-}
+};

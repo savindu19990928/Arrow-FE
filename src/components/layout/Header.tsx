@@ -1,194 +1,182 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { MenuIcon, MoonIcon, SearchIcon, ShoppingCartIcon, SunIcon, UserIcon, XIcon } from 'lucide-react';
-import { Logo } from '../Logo';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useCart } from '../../contexts/CartContext';
+import { HeartIcon, MenuIcon, SearchIcon, ShoppingBagIcon, UserIcon, XIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCart } from '../../contexts/CartContext';
+import { useWishlist } from '../../contexts/WishlistContext';
+import { mainNav } from '../../data/site';
+import { BrandMark } from './BrandMark';
 
-interface NavItem {
-  label: string;
-  to: string;
-  isActive: (path: string) => boolean;
-}
+type PanelMode = 'menu' | 'search' | null;
 
 export function Header() {
-  const { count } = useCart();
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { count } = useCart();
+  const { items: wishlist } = useWishlist();
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [panel, setPanel] = useState<PanelMode>(null);
   const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
 
-  const nav: NavItem[] = [
-  { label: 'Products', to: '/shop', isActive: (p) => p === '/shop' || p.startsWith('/product/') },
-  { label: 'Maintenance', to: '/maintenance', isActive: (p) => p === '/maintenance' },
-  { label: 'Our Story', to: '/our-story', isActive: (p) => p === '/our-story' },
-  { label: 'Support', to: '/support', isActive: (p) => p === '/support' || p === '/track' }];
-
+  useEffect(() => setPanel(null), [location.pathname, location.search]);
 
   useEffect(() => {
-    setMenuOpen(false);
-    setSearchOpen(false);
-  }, [location.pathname, location.search]);
+    if (panel === 'search') mobileSearchRef.current?.focus();
+  }, [panel]);
 
   useEffect(() => {
-    if (searchOpen) inputRef.current?.focus();
-  }, [searchOpen]);
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPanel(null);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [panel]);
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = query.trim();
-    navigate(q ? `/shop?search=${encodeURIComponent(q)}` : '/shop');
+    navigate(q ? `/catalog?search=${encodeURIComponent(q)}` : '/catalog');
+    setQuery('');
+    setPanel(null);
   };
 
+  const toggle = (mode: Exclude<PanelMode, null>) => setPanel((current) => current === mode ? null : mode);
+
+  const iconLink =
+  'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-raised hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg/60';
+
+  const mobileLinks = [...mainNav, ...(user ? [{ to: '/account?tab=wishlist', label: 'Wishlist' }] : [])];
+
   return (
-    <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/95 backdrop-blur">
-      <div className="mx-auto flex h-[76px] max-w-site items-center justify-between px-5 md:h-[92px] md:px-10">
-        <Logo />
+    <header className="sticky top-0 z-40 border-b border-line bg-bg/95 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:h-16 sm:gap-6 sm:px-6 lg:px-8">
+        <Link to="/" aria-label="Arrow Ventures home" className="shrink-0">
+          <BrandMark />
+        </Link>
 
-        <nav aria-label="Primary" className="hidden lg:block">
-          <ul className="flex items-center gap-10">
-            {nav.map((item) => {
-              const active = item.isActive(location.pathname);
-              return (
-                <li key={item.label}>
-                  <NavLink
-                    to={item.to}
-                    className={`focus-ring relative block whitespace-nowrap rounded py-2 text-[15px] ${
-                    active ? 'font-medium text-ink' : 'text-ink/80 hover:text-ink'}`
-                    }
-                    aria-current={active ? 'page' : undefined}>
-                    
-                    {item.label}
-                    {active &&
-                    <motion.span
-                      layoutId="nav-underline"
-                      className="absolute -bottom-1 left-0 h-[2px] w-full bg-lime-bright"
-                      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }} />
+        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          {mainNav.map((item) =>
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+            `whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors duration-150 ${
+            isActive ? 'text-fg' : 'text-muted hover:text-fg'}`
 
-                    }
-                  </NavLink>
-                </li>);
-
-            })}
-          </ul>
+            }>
+            
+              {item.label}
+            </NavLink>
+          )}
         </nav>
 
-        <div className="flex items-center gap-1 md:gap-3">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="focus-ring rounded-full p-2.5 hover:bg-ink/10"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+        <form onSubmit={submitSearch} role="search" className="ml-auto hidden w-full max-w-xs lg:block">
+          <label htmlFor="header-search" className="sr-only">
+            Search products
+          </label>
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+            <input
+              id="header-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search bikes, parts, accessories"
+              className="h-10 w-full rounded-md border border-line bg-surface pl-9 pr-3 text-sm text-fg placeholder:text-subtle focus:border-fg/50 focus:outline-none" />
             
-            {theme === 'dark' ?
-            <SunIcon className="h-[22px] w-[22px]" strokeWidth={1.6} /> :
+          </div>
+        </form>
 
-            <MoonIcon className="h-[22px] w-[22px]" strokeWidth={1.6} />
+        <div className="ml-auto flex items-center gap-0.5 sm:gap-1 lg:ml-0">
+          <button
+            type="button"
+            className={`${iconLink} lg:hidden`}
+            onClick={() => toggle('search')}
+            aria-expanded={panel === 'search'}
+            aria-controls="mobile-panel"
+            aria-label="Search products">
+            
+            <SearchIcon className="h-5 w-5" />
+          </button>
+          {user &&
+          <Link to="/account?tab=wishlist" className={`${iconLink} hidden sm:flex`} aria-label="Wishlist">
+              <HeartIcon className="h-5 w-5" />
+              {wishlist.length > 0 &&
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-fg" aria-hidden="true" />
             }
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearchOpen((v) => !v)}
-            className="focus-ring rounded-full p-2.5 hover:bg-ink/10"
-            aria-label="Search products"
-            aria-expanded={searchOpen}>
-            
-            <SearchIcon className="h-[22px] w-[22px]" strokeWidth={1.6} />
-          </button>
-          <Link
-            to={user ? '/account' : '/login'}
-            className="focus-ring rounded-full p-2.5 hover:bg-ink/10"
-            aria-label={user ? 'Your account' : 'Sign in'}>
-            
-            <UserIcon className="h-[22px] w-[22px]" strokeWidth={1.6} />
+            </Link>
+          }
+          <Link to={user ? '/account' : '/login'} className={iconLink} aria-label={user ? 'My account' : 'Sign in'}>
+            <UserIcon className="h-5 w-5" />
           </Link>
-          <Link
-            to="/cart"
-            className="focus-ring relative rounded-full p-2.5 hover:bg-ink/10"
-            aria-label={`Cart, ${count} items`}>
-            
-            <ShoppingCartIcon className="h-[22px] w-[22px]" strokeWidth={1.6} />
-            <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-lime-bright px-1 text-[11px] font-semibold text-ink">
-              {count}
-            </span>
+          <Link to="/cart" className={iconLink} aria-label={`Cart, ${count} items`}>
+            <ShoppingBagIcon className="h-5 w-5" />
+            {count > 0 &&
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-fg px-1 text-[11px] font-semibold text-bg">
+                {count > 99 ? '99+' : count}
+              </span>
+            }
           </Link>
           <button
             type="button"
-            className="focus-ring rounded-full p-2.5 hover:bg-ink/10 lg:hidden"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}>
+            className={`${iconLink} md:hidden`}
+            onClick={() => toggle('menu')}
+            aria-expanded={panel === 'menu'}
+            aria-controls="mobile-panel"
+            aria-label={panel === 'menu' ? 'Close menu' : 'Open menu'}>
             
-            {menuOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+            {panel === 'menu' ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      <AnimatePresence initial={false}>
-        {searchOpen &&
+      <AnimatePresence>
+        {panel &&
         <motion.div
-          key="search"
-          initial={{ opacity: 0, y: -6 }}
+          id="mobile-panel"
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
+          exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-          className="border-t border-line bg-paper">
+          className="max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-t border-line bg-bg lg:hidden">
           
-            <form onSubmit={submitSearch} className="mx-auto flex max-w-site items-center gap-3 px-5 py-4 md:px-10" role="search">
-              <SearchIcon className="h-5 w-5 text-subtle" aria-hidden />
-              <label htmlFor="site-search" className="sr-only">
+            <form onSubmit={submitSearch} role="search" className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
+              <label htmlFor="mobile-search" className="sr-only">
                 Search products
               </label>
-              <input
-              id="site-search"
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
-              placeholder="Search e-bikes, batteries, parts, accessories…"
-              className="flex-1 bg-transparent py-2 text-lg outline-none placeholder:text-subtle" />
-            
-              <button type="submit" className="btn-primary px-5 py-2.5">
-                Search
-              </button>
+              <div className="relative">
+                <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+                <input
+                ref={mobileSearchRef}
+                id="mobile-search"
+                type="search"
+                enterKeyHint="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search bikes, parts, accessories"
+                className="h-12 w-full rounded-md border border-line bg-surface pl-10 pr-3.5 text-base text-fg placeholder:text-subtle focus:border-fg/50 focus:outline-none" />
+              
+              </div>
             </form>
-          </motion.div>
-        }
-      </AnimatePresence>
+            {panel === 'menu' &&
+          <nav aria-label="Mobile" className="flex flex-col border-t border-line px-2 py-2 md:hidden">
+                {mobileLinks.map((item) =>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+              `flex min-h-[3rem] items-center rounded-md px-3 text-base transition-colors duration-150 hover:bg-raised ${
+              isActive ? 'text-fg' : 'text-muted'}`
 
-      <AnimatePresence initial={false}>
-        {menuOpen &&
-        <motion.nav
-          key="mobile-nav"
-          aria-label="Mobile"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-          className="overflow-hidden border-t border-line bg-paper lg:hidden">
-          
-            <ul className="px-5 py-3">
-              {nav.map((item) =>
-            <li key={item.label}>
-                  <Link to={item.to} className="block border-b border-line py-3.5 text-lg">
+              }>
+              
                     {item.label}
-                  </Link>
-                </li>
+                  </NavLink>
             )}
-              <li>
-                <Link to="/track" className="block py-3.5 text-lg">
-                  Track an order
-                </Link>
-              </li>
-            </ul>
-          </motion.nav>
+              </nav>
+          }
+          </motion.div>
         }
       </AnimatePresence>
     </header>);

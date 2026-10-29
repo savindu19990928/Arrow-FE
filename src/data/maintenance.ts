@@ -1,8 +1,8 @@
 export const warrantyCoverage = [
-{ component: 'Frame & Fork', duration: '5 Years', note: null },
-{ component: 'Motor & Controller', duration: '2 Years', note: null },
-{ component: 'Battery', duration: '2 Years', note: 'or 500 charge cycles' },
-{ component: 'Electronic Components', duration: '1 Year', note: null }];
+{ component: 'Frame & Fork', duration: '5', unit: 'Years', note: null },
+{ component: 'Motor & Controller', duration: '2', unit: 'Years', note: null },
+{ component: 'Battery', duration: '2', unit: 'Years', note: 'or 500 charge cycles' },
+{ component: 'Electronic Components', duration: '1', unit: 'Year', note: null }];
 
 
 export const wearAndTearExamples = ['Brake pad depletion', 'Tire punctures', 'Chain stretching', 'Cosmetic scratches'];
@@ -23,11 +23,3 @@ export const maintenanceFaqs = [
   answer:
   'Basic maintenance like fixing flat tires, adjusting mechanical brakes, or lubricating the chain is encouraged. However, any work involving the battery, motor, or internal wiring must be done by an authorized technician to maintain warranty validity.'
 }];
-
-
-export const serviceContact = {
-  phone: '+94 77 123 4567',
-  phoneHref: 'tel:+94771234567',
-  email: 'service@arrowventures.com',
-  hours: 'Monday – Friday, 9AM – 6PM'
-};
